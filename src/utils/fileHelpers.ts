@@ -9,14 +9,56 @@ export const readCSVFile = (file: File): Promise<string[][]> => {
         return;
       }
       
-      const content = event.target.result as string;
-      const rows = content.split('\n').map(row => {
-        // Handle both comma and semicolon delimiters
-        const delimiter = row.includes(';') ? ';' : ',';
-        return row.split(delimiter).map(cell => cell.trim().replace(/"/g, ''));
-      });
-      
-      resolve(rows.filter(row => row.some(cell => cell !== '')));
+      try {
+        console.log("Reading CSV file content...");
+        const content = event.target.result as string;
+        
+        // Try to detect the delimiter (comma, semicolon, tab)
+        const firstLine = content.split('\n')[0];
+        let delimiter = ','; // default
+        
+        if (firstLine.includes(';')) {
+          delimiter = ';';
+        } else if (firstLine.includes('\t')) {
+          delimiter = '\t';
+        }
+        
+        console.log(`Detected delimiter: '${delimiter === '\t' ? 'tab' : delimiter}'`);
+        
+        const rows = content.split('\n').map(row => {
+          // Handle quoted values correctly
+          const result = [];
+          let inQuotes = false;
+          let currentValue = '';
+          
+          for (let i = 0; i < row.length; i++) {
+            const char = row[i];
+            
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === delimiter && !inQuotes) {
+              result.push(currentValue.trim());
+              currentValue = '';
+            } else {
+              currentValue += char;
+            }
+          }
+          
+          // Add the last value
+          result.push(currentValue.trim());
+          
+          // Clean up double quotes
+          return result.map(cell => cell.replace(/^"(.*)"$/, '$1').replace(/""/g, '"'));
+        });
+        
+        const filteredRows = rows.filter(row => row.some(cell => cell !== ''));
+        console.log(`CSV parsed: ${filteredRows.length} rows`);
+        
+        resolve(filteredRows);
+      } catch (error) {
+        console.error("Error parsing CSV:", error);
+        reject(new Error("Error parsing CSV file"));
+      }
     };
     
     reader.onerror = () => {
