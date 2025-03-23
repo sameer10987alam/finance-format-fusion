@@ -1,7 +1,6 @@
-
 import React, { useState, useRef } from 'react';
 import { UploadCloud } from 'lucide-react';
-import { standardizeStatement } from '@/utils/standardizeStatement';
+import { standardizeStatement } from '@/utils/statement';
 import { StandardizedStatement } from '@/types';
 
 interface FileUploadProps {
